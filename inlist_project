@@ -1,0 +1,217 @@
+
+&star_job
+
+  ! do not begin with a pre-main sequence model
+    create_pre_main_sequence_model = .false.
+
+  ! Extra parameters for handling accretion and mass loss
+    extras_lrpar = 20
+    extras_rpar(:) = 0d0
+
+    change_net = .true.
+    !new_net_name = 'approx21.net' 
+! - changed by EbF
+    new_net_name = 'approx21_cr60_plus_co56.net'
+    dump_missing_metals_into_heaviest = .false.
+
+    relax_initial_Y = .true.
+    new_Y = 0.28
+
+  ! display on-screen plots
+    pgstar_flag = .true.
+
+  ! initial time step
+    set_initial_dt = .true.
+    years_for_initial_dt = 1d0
+
+
+! turn on hydro - EbF
+      change_initial_v_flag = .true.
+      change_v_flag = .true.
+      new_v_flag = .true.
+
+
+/ !end of star_job namelist
+
+&eos
+
+/ ! end of eos namelist
+
+&kap
+    Zbase = 0.02
+/ ! end of kap namelist
+
+&controls
+
+  ! starting specifications
+    initial_mass = 1 ! in Msun units
+
+     relax_dY = 0.1d-2
+
+  ! AGN properties
+     x_ctrl(1) = 2d-18 ! Ambient density in cgs units
+     x_ctrl(2) = 1d6   ! Ambient sound speed in cm/s
+     x_ctrl(3) = 4d-1  ! Average accretion stream opacity in cm^2/s. Using electron scattering. Before we were using surface value  
+     x_ctrl(4) = 1d7   ! Time (yrs) over which star falls into AGN (used for blending atmospheric boundary condition)
+     x_ctrl(5) = 7.0   ! Exponent for mixing turnon when using Ledd prescription.
+     x_ctrl(6) = 1d6   ! Time (yrs) over which the mass gain turns on.
+     x_ctrl(9) = 1d-11 ! AGN angular frequency in rad/s
+     x_ctrl(10) = 5d4  ! Cutoff mass due to the gap
+     x_ctrl(11) = 1d8  ! SMBH mass
+     x_ctrl(12) = 1d0  ! Transitional beta, used to set the Prad/P where extra mixing turns on (when using beta prescription).
+
+     x_logical_ctrl(1) = .false. ! Alternate radiative accretion reduction (1-L/Ledd)^2
+     x_logical_ctrl(2) = .false. ! Use mass gap cutoff
+     x_logical_ctrl(3) = .false. ! Use vertical rarification accretion rate prescription
+     x_logical_ctrl(4) = .false. ! Use shear accretion rate prescription
+     x_logical_ctrl(5) = .false. ! Use Hill accretion rate prescription (higher viscosity case)
+     x_logical_ctrl(6) = .false. ! Use tidal barrier accretion rate prescription (*low* viscosity case)
+     x_logical_ctrl(7) = .false. ! Rotation reduces L_edd.
+     x_logical_ctrl(8) = .false. ! Use radiation beta for mixing.
+     x_logical_ctrl(9) = .false.  ! Use accretion composition for Ledd
+
+  ! options for energy conservation (see MESA V, Section 3)
+     energy_eqn_option = 'dedt'
+
+  ! Accretion stream atmosphere
+     use_other_surface_PT = .true.
+     use_other_adjust_mdot = .true.
+
+  ! Solver
+    use_gold_tolerances = .true.
+    convergence_ignore_equL_residuals = .true.
+    ignore_species_in_max_correction = .true.
+    min_timestep_limit = 1d-28
+    delta_lgL_limit = 1d-1
+    use_other_timestep_limit = .false.
+    varcontrol_target = 1d-3
+    gold_solver_iters_timestep_limit = 30
+    time_delta_coeff = 0.6
+    max_abs_rel_run_E_err = 1d99
+
+    limit_for_rel_error_in_energy_conservation = 1d99
+    hard_limit_for_rel_error_in_energy_conservation = 1d99
+    max_abs_rel_run_E_err = -1d0
+
+
+! additional timestep controls -EbF
+! time step limit -EbF
+      
+! on the timestep
+      min_timestep_factor = 0.8d0
+      max_timestep_factor = 1.05d0
+      timestep_factor_for_retries = 0.75       
+      
+
+! on negative mass fractions
+      never_skip_hard_limits = .true
+      min_xa_hard_limit = -1d-5
+      min_xa_hard_limit_for_highT = -3d-5
+
+
+! on effective temperature
+      delta_lgTeff_limit =  0.1
+
+! on luminosities
+      delta_lgL_limit = 0.1     
+      delta_lgL_He_limit = 0.1
+
+
+! on central density changes
+      delta_lgRho_cntr_limit = 1d-2 ! default is 0.05, I prefer 1d-3
+      delta_lgRho_cntr_hard_limit = 0.01
+      delta_lgRho_limit = 0.1 
+      
+
+! central temperature changes
+!      delta_lgT_cntr_limit_only_after_near_zams = .true.
+      delta_lgT_cntr_limit = 1d-2  ! 0.002  
+      delta_lgT_cntr_hard_limit = 0.1
+
+! on any temperature changes, mainly to capture off-center flames
+!      delta_lgT_max_limit_only_after_near_zams = .true.
+      delta_lgT_max_limit = 1d-2  ! 0.002     
+      delta_lgT_max_hard_limit = 0.1
+
+! on ye      
+      delta_Ye_highT_limit = 1d-3
+
+
+! on mass fraction changes
+      dX_nuc_drop_limit = 2d-2 !1d-3
+      dX_nuc_drop_limit_at_high_T = -1  ! default = -1 = same as dX_nuc_drop_limit
+      dX_nuc_drop_limit_at_high_T = 2d-2 ! 8d-3  ! when max logT > 9.45
+      dX_nuc_drop_min_X_limit = 1d-3
+      dX_nuc_drop_max_A_limit = 60    
+      dX_nuc_drop_hard_limit = 1d99
+
+
+! on fuel depletion
+
+      delta_XSi_cntr_limit = 0.005
+      delta_XSi_cntr_hard_limit = 0.02
+
+! extra solver controls
+      convergence_ignore_equL_residuals = .true. 
+      make_gradr_sticky_in_solver_iters = .true.
+    
+! composition control
+      min_dq_for_xa = 1d-4    ! avoid over-resolving composition changes
+
+!--- end additional timestep controls -EbF
+
+  ! Mesh
+    mesh_delta_coeff = 0.8
+    max_allowed_nz = 36000
+
+  ! Physics
+    use_other_D_mix = .true. ! Activate gradual increase of min_D_mix (with Gamma)
+
+  ! Accrete H/He
+    accrete_same_as_surface = .false.
+    accrete_given_mass_fractions = .true.
+    num_accretion_species = 2
+    accretion_species_id(1) = 'h1'
+    accretion_species_xa(1) = 0.72
+    accretion_species_id(2) = 'he4'
+    accretion_species_xa(2) = 0.28
+
+  ! Output
+    terminal_interval = 1
+    history_interval = 1 ! Important to be 1 for using accreted_mass, lost_mass and lost mass in isotopes (it's not cumulative, so undercounts if not saving all history. Improve to cumulative)
+    warn_when_large_rel_run_E_err = 1d99
+
+! commented out by EbF
+!    profile_interval = 500
+!    photo_interval = 200
+!    max_num_profile_models = 500
+! new saving options from -EbF
+
+! output frequency section:
+       photo_interval         = 100
+       photo_digits           = 8
+       profile_interval       = 100 
+       max_num_profile_models = 400000
+       history_interval       = 1
+       terminal_interval      = 1!10
+       write_header_frequency = 10
+
+
+    report_solver_progress = .false.
+    report_solver_dt_info = .false.
+
+  ! Stopping condition
+    !log_center_temp_upper_limit = 9.8d0
+    max_age = 3d12
+    max_model_number = 30000000
+
+! Let's stop at fe-core infall -EbF
+fe_core_infall_limit = 1d8
+fe_core_infall_mass = 1d0
+fe_core_boundary_si28_fraction = 0.001!0.1d0
+
+non_fe_core_infall_limit = 1d10
+
+
+/ ! end of controls namelist
+
