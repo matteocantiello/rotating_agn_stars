@@ -262,9 +262,9 @@
          names(5) = 'L_stream'      ! Stream Luminosity
          names(6) = 'R_ph'          ! Photospheric Radius
          names(7) = 'R_bondi'       ! R Bondi
-         names(8) = 'mu_J'
+         names(8) = 'mu_J'          ! Log Total angular momentum of star 
          names(9) = 'std_J'
-         names(10) = 'mu_J_div_J_crit'
+         names(10) = 'mu_J_div_J_crit' ! mu_J divided by J critical
          names(11) = 'J_crit'
          names(12) = 'LdivLedd'
          names(13) = 'R_shock'
@@ -290,9 +290,9 @@
          vals(5) = s% xtra1_array(5)
          vals(6) = s% xtra1_array(6)
          vals(7) = s% xtra1_array(7)
-         vals(8) = s%job%extras_rpar(i_mu_J)
+         vals(8) = safe_log10(s%job%extras_rpar(i_mu_J))
          vals(9) = pow(s%job%extras_rpar(i_var_J), 0.5d0)
-         vals(10) = vals(8) / s%job%extras_rpar(i_J_crit)
+         vals(10) = s%job%extras_rpar(i_mu_J) / s%job%extras_rpar(i_J_crit)
          vals(11) = s%job%extras_rpar(i_J_crit)
          vals(12) = s% xtra1_array(9)  ! Leff / Ledd (from mass_changes.f90)
          vals(13) = s% xtra1_array(10) ! R Shock (R 'Surface' of MESA model) (from atmosphere.f90)

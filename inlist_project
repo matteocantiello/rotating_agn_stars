@@ -51,7 +51,7 @@
 &controls
 
   ! starting specifications
-    initial_mass = 1 ! in Msun units
+    initial_mass = 3 ! in Msun units
 
      relax_dY = 0.1d-2
 
@@ -59,9 +59,9 @@
      x_ctrl(1) = 2d-18 ! Ambient density in cgs units
      x_ctrl(2) = 1d6   ! Ambient sound speed in cm/s
      x_ctrl(3) = 4d-1  ! Average accretion stream opacity in cm^2/s. Using electron scattering. Before we were using surface value  
-     x_ctrl(4) = 1d7   ! Time (yrs) over which star falls into AGN (used for blending atmospheric boundary condition)
+     x_ctrl(4) = 1d6   ! Time (yrs) over which star falls into AGN (used for blending atmospheric boundary condition)
      x_ctrl(5) = 7.0   ! Exponent for mixing turnon when using Ledd prescription.
-     x_ctrl(6) = 1d6   ! Time (yrs) over which the mass gain turns on.
+     x_ctrl(6) = 2d6   ! Time (yrs) over which the mass gain turns on.
      x_ctrl(9) = 1d-11 ! AGN angular frequency in rad/s
      x_ctrl(10) = 5d4  ! Cutoff mass due to the gap
      x_ctrl(11) = 1d8  ! SMBH mass
@@ -75,7 +75,7 @@
      x_logical_ctrl(6) = .false. ! Use tidal barrier accretion rate prescription (*low* viscosity case)
      x_logical_ctrl(7) = .false. ! Rotation reduces L_edd.
      x_logical_ctrl(8) = .false. ! Use radiation beta for mixing.
-     x_logical_ctrl(9) = .false.  ! Use accretion composition for Ledd
+     x_logical_ctrl(9) = .false. ! Use accretion composition for Ledd
 
   ! options for energy conservation (see MESA V, Section 3)
      energy_eqn_option = 'dedt'
@@ -85,7 +85,34 @@
      use_other_adjust_mdot = .true.
 
   ! Angular Momentum Accretion
-     use_other_torque = .true.   
+    use_other_torque = .false.   
+
+  ! Mixing 
+
+    use_other_D_mix = .false. ! Activate gradual increase of min_D_mix (with Gamma)
+      
+    omega_function_weight = 20               ! Rotational mixing parameters 
+    am_nu_visc_factor = 0                     
+    am_D_mix_factor = 0.0333333333333333d00
+    D_DSI_factor = 1
+    D_SH_factor = 1
+    D_SSI_factor = 1
+    D_ES_factor = 1  
+    D_GSF_factor = 1
+    D_ST_factor = 1
+    am_nu_ST_factor = 10
+    clip_D_limit = 10
+
+    mdot_omega_power = 0.43
+
+
+! convection
+
+      MLT_option = 'Cox'   ! 'TDC'
+      mixing_length_alpha = 1.6
+      use_Ledoux_criterion = .true.
+      alpha_semiconvection = 4d-2
+      thermohaline_coeff = 2
 
   ! Solver
     use_gold_tolerances = .true.
@@ -174,8 +201,6 @@
     mesh_delta_coeff = 0.8
     max_allowed_nz = 36000
 
-  ! Physics
-    use_other_D_mix = .true. ! Activate gradual increase of min_D_mix (with Gamma)
 
   ! Accrete H/He
     accrete_same_as_surface = .false.

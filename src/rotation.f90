@@ -153,7 +153,7 @@ subroutine agn_other_torque(id, ierr)
    call star_ptr(id, s, ierr)
    if (ierr /= 0) return
 
-   m_deposit_target = 0.01d0 * s% mstar  ! 1% of stellar mass
+   m_deposit_target = 1d0 * s% mstar  ! 100% of stellar mass (tried initially with 1% but led to numerical issues)
 
    s% extra_jdot(:) = 0d0
    s% extra_omegadot(:) = 0d0
