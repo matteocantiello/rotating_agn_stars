@@ -101,6 +101,8 @@
          s% other_adjust_mdot => other_adjust_mdot
          s% other_D_mix => my_other_D_mix
          s% other_timestep_limit => my_other_timestep_limit
+         s% other_torque => agn_other_torque 
+
          ! Once you have set the function pointers you want,
          ! then uncomment this (or set it in your star_job inlist)
          ! to disable the printed warning message,
@@ -127,7 +129,14 @@
          ierr = 0
          call star_ptr(id, s, ierr)
          if (ierr /= 0) return
+         
+
+         write(*,*) '>>> extras_start_step: rotation_flag =', s% rotation_flag
+         write(*,*) '>>> extras_start_step: use_other_torque =', s% use_other_torque
+         write(*,*) '>>> extras_start_step: omega(1) =', s% omega(1)
+
          call set_blend(id, ierr)
+
       end subroutine extras_startup
 
 
@@ -191,7 +200,7 @@
          ierr = 0
          call star_ptr(id, s, ierr)
          if (ierr /= 0) return
-         how_many_extra_history_columns = 18 + s% species
+         how_many_extra_history_columns = 22 + s% species
       end function how_many_extra_history_columns
 
       subroutine M_outside_LSO(id, ierr, m_outside_a0, m_outside_a1)
@@ -264,9 +273,14 @@
          names(16) = 'Mdot_Blend'
          names(17) = 'M_above_a=0_LSO'
          names(18) = 'M_above_a=1_LSO'
+         names(19) = 'agn_dj_dt'
+         names(20) = 'agn_H_p'
+         names(21) = 'agn_k_acc'
+         names(22) = 'agn_J_dep'
+
 
          do j=1,species
-            names(18+j) = chem_isos%name(s%chem_id(j))
+            names(22+j) = chem_isos%name(s%chem_id(j))
          end do
 
          vals(1) = s% xtra1_array(1)
@@ -285,11 +299,16 @@
          vals(14) = s% xtra1_array(11) ! log2 T Shock (T 'Surface' of MESA model) (from atmosphere.f90)
          vals(15) = atm_blend
          vals(16) = mdot_blend
+         vals(19) = s% job% extras_rpar(i_dj_dt)
+         vals(20) = s% job% extras_rpar(i_H_p)
+         vals(21) = s% job% extras_rpar(i_k_acc)
+         vals(22) = s% job% extras_rpar(i_J_dep)
+
 
          call M_outside_LSO(id, ierr, vals(17), vals(18))
 
          do j=1,species
-            vals(18+j) = lost_mass(j) / Msun
+            vals(22+j) = lost_mass(j) / Msun
          end do
 
 

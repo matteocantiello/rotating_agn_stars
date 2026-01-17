@@ -222,8 +222,10 @@ module mass_changes
 
      call update_J_dist(id, gain, loss, R_bondi)
 
-    s% job% extras_rpar(i_gain) = gain  ! We don't seem to use this, remove?
-    s% job% extras_rpar(i_loss) = loss  ! We don't seem to use this, remove?
+    s% job% extras_rpar(i_gain) = gain   
+    s% job% extras_rpar(i_loss) = loss   
+    s% job% extras_rpar(i_R_bondi) = R_bondi
+     
      ! Save variables for history
 
      s% xtra1_array(1) = gain

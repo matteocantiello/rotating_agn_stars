@@ -303,10 +303,10 @@ Profile_Panels1_other_yaxis_name(1) = 'vel_km_per_s'
 Profile_Panels1_show_mix_regions_on_xaxis = .true.
 
 
-Profile_Panels1_yaxis_name(2) = 'mu'
+Profile_Panels1_yaxis_name(2) = 'omega_div_omega_crit'
 Profile_Panels1_xaxis_name = 'mass'
 Profile_Panels1_yaxis_log(2) = .false.
-Profile_Panels1_other_yaxis_name(2) = 'zone'
+Profile_Panels1_other_yaxis_name(2) = 'omega'
 Profile_Panels1_show_mix_regions_on_xaxis = .true.
 
 !------------------------------------------------------------------------------------

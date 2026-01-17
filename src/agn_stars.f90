@@ -17,6 +17,19 @@ module agn_stars
    integer, parameter :: i_mu_J = 18
    integer, parameter :: i_var_J = 19
    integer, parameter :: i_J_crit = 20
+
+   ! Index definitions for extras_rpar (add to your existing indices)
+   integer, parameter :: i_dj_dt = 1       ! net torque [erg]
+   integer, parameter :: i_H_p = 2         ! pressure scale height [cm]
+   integer, parameter :: i_k_acc = 3       ! number of zones in deposition region
+   integer, parameter :: i_J_dep = 4       ! angular momentum deposited this step [g cm2/s]
+   integer, parameter :: i_R_Hill = 15     ! Hill radius [cm]
+   integer, parameter :: i_R_Bondi = 16    ! Bondi radius [cm]
+
+   ! Index for extras_lpar
+   integer, parameter :: i_verbose_torque = 1  ! toggle verbose output
+
+
    ! For time-step control
    real(dp), parameter :: max_delta_ln_m = 3d-3
    real(dp), parameter :: blend_safety = 3d-1
@@ -38,6 +51,8 @@ module agn_stars
    real(dp) :: atm_blend = 1d-20         ! Current state of the blend
    real(dp) :: mdot_blend = 1d-20       ! Current state of the blend
    real(dp) :: lost_mass(200)          ! Tracks lost mass
+
+
 
    contains
 

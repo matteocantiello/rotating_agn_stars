@@ -95,4 +95,157 @@ module rotation
 
    end subroutine update_J_dist
 
+
+
+   subroutine compute_surface_dj(id, gain, loss, R_bondi, dj_dt)
+   real(dp), intent(in) :: gain, loss, R_bondi
+   real(dp), intent(out) :: dj_dt
+   real(dp) :: M, R, h, R_Hill, R_acc, j_acc, j_surf, Omega_surf
+   integer, intent(in) :: id
+   integer :: ierr
+   type(star_info), pointer :: s
+
+   ierr = 0
+   call star_ptr(id, s, ierr)
+   if (ierr /= 0) return
+
+   M = s%m(1)
+   R = s%r(1)
+   Omega_surf = s%omega(1)
+
+   ! Disk scale height
+   h = sqrt(2d0) * const_csb / Omega_AGN
+
+   ! Hill radius: R_H = [R_bondi * h^2 / 12]^{1/3}
+   R_Hill = pow((1d0/12d0) * pow2(h) * R_bondi, 1d0/3d0)
+   R_acc = min(R_Hill, R_Bondi)
+
+   ! Specific angular momentum of accreted material
+   ! Limited by either disk Keplerian value or breakup at stellar surface
+   j_acc = min(pow2(R_acc) * Omega_AGN, sqrt(standard_cgrav * M * R))
+   ! Specific angular momentum carried away by mass loss (make sure this is not double-counted by MESA's wind routine)
+   j_surf = Omega_surf * pow2(R)
+
+   ! Net dJ/dt to apply at surface via other_torque
+   dj_dt = abs(gain) * j_acc - abs(loss) * j_surf
+
+   s% job% extras_rpar(i_R_Hill) = R_Hill
+
+end subroutine compute_surface_dj
+
+
+
+subroutine agn_other_torque(id, ierr)
+   use star_def
+   integer, intent(in) :: id
+   integer, intent(out) :: ierr
+   type (star_info), pointer :: s
+   integer :: k, k_acc
+   real(dp) :: gain, loss, R_bondi, dj_dt
+   real(dp) :: m_sum, J_surf, scale
+   real(dp) :: H_p, r_deposit
+   real(dp) :: j_acc, j_surf_specific, dJ_total
+   real(dp) :: m_deposit_target
+
+
+
+   ierr = 0
+   call star_ptr(id, s, ierr)
+   if (ierr /= 0) return
+
+   m_deposit_target = 0.01d0 * s% mstar  ! 1% of stellar mass
+
+   s% extra_jdot(:) = 0d0
+   s% extra_omegadot(:) = 0d0
+
+   ! Retrieve gain, loss, and R_bondi from storage
+   gain = s% job% extras_rpar(i_gain)
+   loss = s% job% extras_rpar(i_loss)
+   R_bondi = s% job% extras_rpar(i_R_bondi)
+
+   ! Skip during relaxation
+   if (s% doing_relax) return
+
+   call compute_surface_dj(id, gain, loss, R_bondi, dj_dt)
+
+   write(*,*) 'agn_other_torque: gain=', gain,' loss=',loss,'M_deposit=',m_deposit_target,' dj_dt=',dj_dt  
+
+   ! Store for diagnostics
+   s% job% extras_rpar(i_dj_dt) = dj_dt
+
+   ! Nothing to do if no net torque
+   if (abs(dj_dt) < 1d-99) then
+      s% job% extras_rpar(i_H_p) = 0d0
+      s% job% extras_rpar(i_k_acc) = 0d0
+      s% job% extras_rpar(i_J_dep) = 0d0
+      return
+   end if
+
+   ! Determine k of deposition region
+   m_sum = 0d0
+   k_acc = 1
+   do k = 1, s% nz
+      m_sum = m_sum + s% dm(k)
+      k_acc = k
+      if (m_sum >= m_deposit_target) exit
+   end do
+
+   ! Compute total mass and angular momentum in the deposition region
+   m_sum = 0d0
+   J_surf = 0d0
+   do k = 1, k_acc
+      m_sum = m_sum + s% dm(k)
+      J_surf = J_surf + s% dm_bar(k) * s% j_rot(k)
+   end do
+
+
+   ! Apply torque
+   if (J_surf < 1d-99) then
+      ! Deposit uniformly by mass in the surface region
+      do k = 1, k_acc
+         s% extra_jdot(k) = dj_dt / m_sum
+      end do
+   else
+      ! Scale proportionally to existing j_rot distribution
+      scale = dj_dt * s% dt / J_surf
+      do k = 1, k_acc
+         s% extra_jdot(k) = s% j_rot(k) * scale / s% dt
+      end do
+   end if
+
+   ! Compute diagnostic quantities
+   dJ_total = dj_dt * s% dt
+
+   ! Store diagnostics
+   s% job% extras_rpar(i_H_p) = H_p
+   s% job% extras_rpar(i_k_acc) = dble(k_acc)
+   s% job% extras_rpar(i_J_dep) = dJ_total
+  
+
+   ! Optional: verbose output
+   !if (s% job% extras_lpar(i_verbose_torque)) then
+      j_acc = min(pow2(min(R_bondi, s% job% extras_rpar(i_R_Hill))) * Omega_AGN, &
+                  sqrt(standard_cgrav * s% m(1) * s% r(1)))
+      j_surf_specific = s% omega(1) * pow2(s% r(1))
+
+      write(*,'(A)') '  ===== AGN Torque Diagnostics ====='
+      write(*,'(A,ES12.4)') '    gain [g/s]        = ', gain
+      write(*,'(A,ES12.4)') '    loss [g/s]        = ', loss
+      write(*,'(A,ES12.4)') '    j_acc [cm2/s]     = ', j_acc
+      write(*,'(A,ES12.4)') '    j_surf [cm2/s]    = ', j_surf_specific
+      write(*,'(A,ES12.4)') '    dJ/dt [erg]       = ', dj_dt
+      write(*,'(A,ES12.4)') '    dJ this step [g cm2/s] = ', dJ_total
+      write(*,'(A,I8)')     '    k_acc             = ', k_acc
+      write(*,'(A,ES12.4)') '    m_deposit [g]     = ', m_sum
+      write(*,'(A,ES12.4)') '    m_deposit / M_star= ', m_sum / s% mstar
+      write(*,'(A,ES12.4)') '    J_surf [g cm2/s]  = ', J_surf
+      write(*,'(A,ES12.4)') '    J_star [g cm2/s]  = ', s% total_angular_momentum
+      write(*,'(A,ES12.4)') '    dJ / J_star       = ', dJ_total / s% total_angular_momentum
+      write(*,'(A)') '  ==================================='
+   !end if
+
+end subroutine agn_other_torque
+
+
+
 end module rotation

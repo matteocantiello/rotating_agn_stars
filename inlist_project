@@ -6,6 +6,7 @@
 
   ! Extra parameters for handling accretion and mass loss
     extras_lrpar = 20
+    extras_llpar = 5
     extras_rpar(:) = 0d0
 
     change_net = .true.
@@ -30,6 +31,12 @@
       change_v_flag = .true.
       new_v_flag = .true.
 
+! Rotation initialization
+  change_initial_rotation_flag = .true.
+  new_rotation_flag = .true.
+  
+  set_initial_omega = .true.
+  new_omega = 0d0
 
 / !end of star_job namelist
 
@@ -76,6 +83,9 @@
   ! Accretion stream atmosphere
      use_other_surface_PT = .true.
      use_other_adjust_mdot = .true.
+
+  ! Angular Momentum Accretion
+     use_other_torque = .true.   
 
   ! Solver
     use_gold_tolerances = .true.
