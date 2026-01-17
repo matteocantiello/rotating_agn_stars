@@ -85,7 +85,7 @@
      use_other_adjust_mdot = .true.
 
   ! Angular Momentum Accretion
-    use_other_torque = .false.   
+    use_other_torque = .true.   
 
   ! Mixing 
 
