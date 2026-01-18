@@ -29,7 +29,7 @@
 ! turn on hydro - EbF
       change_initial_v_flag = .true.
       change_v_flag = .true.
-      new_v_flag = .true.
+      new_v_flag = .false.
 
 ! Rotation initialization
   change_initial_rotation_flag = .true.
@@ -51,7 +51,7 @@
 &controls
 
   ! starting specifications
-    initial_mass = 3 ! in Msun units
+    initial_mass = 5 ! in Msun units
 
      relax_dY = 0.1d-2
 
@@ -77,45 +77,45 @@
      x_logical_ctrl(8) = .false. ! Use radiation beta for mixing.
      x_logical_ctrl(9) = .false. ! Use accretion composition for Ledd
 
-  ! options for energy conservation (see MESA V, Section 3)
-     energy_eqn_option = 'dedt'
+  ! Options for energy conservation (see MESA V, Section 3)
+    energy_eqn_option = 'dedt'
 
   ! Accretion stream atmosphere
-     use_other_surface_PT = .true.
-     use_other_adjust_mdot = .true.
+    use_other_surface_PT = .true.
+    use_other_adjust_mdot = .true.
 
   ! Angular Momentum Accretion
     use_other_torque = .true.   
 
-  ! Mixing 
+  ! Rotation and Mixing 
 
-    use_other_D_mix = .false. ! Activate gradual increase of min_D_mix (with Gamma)
+    use_other_D_mix = .true. ! Activate gradual increase of min_D_mix (with Gamma)
       
-    omega_function_weight = 20               ! Rotational mixing parameters 
+   ! omega_function_weight = 20               ! Rotational mixing parameters 
     am_nu_visc_factor = 0                     
     am_D_mix_factor = 0.0333333333333333d00
-    D_DSI_factor = 1
-    D_SH_factor = 1
-    D_SSI_factor = 1
-    D_ES_factor = 1  
-    D_GSF_factor = 1
-    D_ST_factor = 1
+    D_DSI_factor = 0
+    D_SH_factor = 10
+    D_SSI_factor = 10
+    D_ES_factor = 10  
+    D_GSF_factor = 10
+    D_ST_factor = 10
     am_nu_ST_factor = 10
     clip_D_limit = 10
 
     mdot_omega_power = 0.43
 
 
-! convection
+  ! Convection
 
-      MLT_option = 'Cox'   ! 'TDC'
-      mixing_length_alpha = 1.6
-      use_Ledoux_criterion = .true.
-      alpha_semiconvection = 4d-2
-      thermohaline_coeff = 2
+    MLT_option = 'Cox'   ! 'TDC'
+    mixing_length_alpha = 1.6
+    !use_Ledoux_criterion = .true. 
+    !alpha_semiconvection = 4d-2
+    !thermohaline_coeff = 2
 
   ! Solver
-    use_gold_tolerances = .true.
+    use_gold_tolerances = .false.
     convergence_ignore_equL_residuals = .true.
     ignore_species_in_max_correction = .true.
     min_timestep_limit = 1d-28

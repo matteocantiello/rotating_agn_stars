@@ -200,7 +200,7 @@
          ierr = 0
          call star_ptr(id, s, ierr)
          if (ierr /= 0) return
-         how_many_extra_history_columns = 22 + s% species
+         how_many_extra_history_columns = 23 + s% species
       end function how_many_extra_history_columns
 
       subroutine M_outside_LSO(id, ierr, m_outside_a0, m_outside_a1)
@@ -262,7 +262,7 @@
          names(5) = 'L_stream'      ! Stream Luminosity
          names(6) = 'R_ph'          ! Photospheric Radius
          names(7) = 'R_bondi'       ! R Bondi
-         names(8) = 'mu_J'          ! Log Total angular momentum of star 
+         names(8) = 'mu_J'          ! Log Total angular momentum of star
          names(9) = 'std_J'
          names(10) = 'mu_J_div_J_crit' ! mu_J divided by J critical
          names(11) = 'J_crit'
@@ -277,10 +277,11 @@
          names(20) = 'agn_H_p'
          names(21) = 'agn_k_acc'
          names(22) = 'agn_J_dep'
+         names(23) = 'agn_v_vcrit_ratio'
 
 
          do j=1,species
-            names(22+j) = chem_isos%name(s%chem_id(j))
+            names(23+j) = chem_isos%name(s%chem_id(j))
          end do
 
          vals(1) = s% xtra1_array(1)
@@ -303,12 +304,13 @@
          vals(20) = s% job% extras_rpar(i_H_p)
          vals(21) = s% job% extras_rpar(i_k_acc)
          vals(22) = s% job% extras_rpar(i_J_dep)
+         vals(23) = s% job% extras_rpar(i_v_vcrit_ratio)
 
 
          call M_outside_LSO(id, ierr, vals(17), vals(18))
 
          do j=1,species
-            vals(22+j) = lost_mass(j) / Msun
+            vals(23+j) = lost_mass(j) / Msun
          end do
 
 

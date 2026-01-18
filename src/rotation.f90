@@ -137,7 +137,7 @@ subroutine compute_surface_dj(id, gain, loss, R_bondi, dj_dt)
    real(dp), intent(in) :: gain, loss, R_bondi
    real(dp), intent(out) :: dj_dt
    real(dp) :: M, R, h, R_Hill, R_acc, j_acc, j_surf, Omega_surf
-   real(dp) :: Omega_crit, omega_ratio, suppression_factor
+   real(dp) :: v_vcrit_ratio, suppression_factor
    integer, intent(in) :: id
    integer :: ierr
    type(star_info), pointer :: s
@@ -150,9 +150,9 @@ subroutine compute_surface_dj(id, gain, loss, R_bondi, dj_dt)
    R = s%r(1)
    Omega_surf = s%omega(1)
 
-   ! Critical rotation
-   Omega_crit = sqrt(standard_cgrav * M / pow3(R))
-   omega_ratio = Omega_surf / Omega_crit
+   ! Use MESA's mass-weighted surface v/v_crit average
+   ! This is more robust than single-cell omega_ratio
+   v_vcrit_ratio = s% v_div_v_crit_avg_surf
 
    ! Disk scale height
    h = sqrt(2d0) * const_csb / Omega_AGN
@@ -171,17 +171,15 @@ subroutine compute_surface_dj(id, gain, loss, R_bondi, dj_dt)
    ! Suppress positive torque as we approach critical rotation
    ! This represents the physical reality that excess angular momentum
    ! cannot be accreted - it forms a decretion disk or is shed
-   if (dj_dt > 0d0 .and. omega_ratio > 0.5d0) then
-      ! Smooth suppression: goes to zero as omega_ratio -> 1
-      suppression_factor = max(0d0, 1d0 - pow2((omega_ratio - 0.5d0) / 0.5d0))
-      ! Alternative: sharper cutoff near critical
-      ! suppression_factor = max(0d0, (1d0 - omega_ratio) / 0.1d0)
-      ! suppression_factor = min(1d0, suppression_factor)
+   if (dj_dt > 0d0 .and. v_vcrit_ratio > 0.5d0) then
+      ! Smooth suppression: goes to zero as v_vcrit_ratio -> 1
+      ! At v/v_crit = 0.5: suppression_factor = 1.0 (no suppression)
+      ! At v/v_crit = 1.0: suppression_factor = 0.0 (full suppression)
+      suppression_factor = max(0d0, 1d0 - pow2((v_vcrit_ratio - 0.5d0) / 0.5d0))
       dj_dt = dj_dt * suppression_factor
    end if
 
    s% job% extras_rpar(i_R_Hill) = R_Hill
-   !s% job% extras_rpar(i_omega_ratio) = omega_ratio  ! For diagnostics
 
 end subroutine compute_surface_dj
 
@@ -285,6 +283,7 @@ subroutine agn_other_torque(id, ierr)
       write(*,'(A,ES12.4)') '    loss [g/s]        = ', loss
       write(*,'(A,ES12.4)') '    j_acc [cm2/s]     = ', j_acc
       write(*,'(A,ES12.4)') '    j_surf [cm2/s]    = ', j_surf_specific
+      write(*,'(A,F8.4)')   '    v/v_crit (surf)   = ', s% job% extras_rpar(i_v_vcrit_ratio)
       write(*,'(A,ES12.4)') '    dJ/dt [erg]       = ', dj_dt
       write(*,'(A,ES12.4)') '    dJ this step [g cm2/s] = ', dJ_total
       write(*,'(A,I8)')     '    k_acc             = ', k_acc
