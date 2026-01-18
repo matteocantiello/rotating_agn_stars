@@ -97,7 +97,7 @@ module rotation
 
 
 
-   subroutine compute_surface_dj(id, gain, loss, R_bondi, dj_dt)
+   subroutine compute_surface_dj_old(id, gain, loss, R_bondi, dj_dt)
    real(dp), intent(in) :: gain, loss, R_bondi
    real(dp), intent(out) :: dj_dt
    real(dp) :: M, R, h, R_Hill, R_acc, j_acc, j_surf, Omega_surf
@@ -130,6 +130,58 @@ module rotation
    dj_dt = abs(gain) * j_acc - abs(loss) * j_surf
 
    s% job% extras_rpar(i_R_Hill) = R_Hill
+
+end subroutine compute_surface_dj_old
+
+subroutine compute_surface_dj(id, gain, loss, R_bondi, dj_dt)
+   real(dp), intent(in) :: gain, loss, R_bondi
+   real(dp), intent(out) :: dj_dt
+   real(dp) :: M, R, h, R_Hill, R_acc, j_acc, j_surf, Omega_surf
+   real(dp) :: Omega_crit, omega_ratio, suppression_factor
+   integer, intent(in) :: id
+   integer :: ierr
+   type(star_info), pointer :: s
+
+   ierr = 0
+   call star_ptr(id, s, ierr)
+   if (ierr /= 0) return
+
+   M = s%m(1)
+   R = s%r(1)
+   Omega_surf = s%omega(1)
+
+   ! Critical rotation
+   Omega_crit = sqrt(standard_cgrav * M / pow3(R))
+   omega_ratio = Omega_surf / Omega_crit
+
+   ! Disk scale height
+   h = sqrt(2d0) * const_csb / Omega_AGN
+
+   ! Hill radius and accretion radius
+   R_Hill = pow((1d0/12d0) * pow2(h) * R_bondi, 1d0/3d0)
+   R_acc = min(R_Hill, R_Bondi)
+
+   ! Specific angular momenta
+   j_acc = min(pow2(R_acc) * Omega_AGN, sqrt(standard_cgrav * M * R))
+   j_surf = Omega_surf * pow2(R)
+
+   ! Raw torque
+   dj_dt = abs(gain) * j_acc - abs(loss) * j_surf
+
+   ! Suppress positive torque as we approach critical rotation
+   ! This represents the physical reality that excess angular momentum
+   ! cannot be accreted - it forms a decretion disk or is shed
+   if (dj_dt > 0d0 .and. omega_ratio > 0.5d0) then
+      ! Smooth suppression: goes to zero as omega_ratio -> 1
+      suppression_factor = max(0d0, 1d0 - pow2((omega_ratio - 0.5d0) / 0.5d0))
+      ! Alternative: sharper cutoff near critical
+      ! suppression_factor = max(0d0, (1d0 - omega_ratio) / 0.1d0)
+      ! suppression_factor = min(1d0, suppression_factor)
+      dj_dt = dj_dt * suppression_factor
+   end if
+
+   s% job% extras_rpar(i_R_Hill) = R_Hill
+   !s% job% extras_rpar(i_omega_ratio) = omega_ratio  ! For diagnostics
 
 end subroutine compute_surface_dj
 
@@ -168,7 +220,7 @@ subroutine agn_other_torque(id, ierr)
 
    call compute_surface_dj(id, gain, loss, R_bondi, dj_dt)
 
-   write(*,*) 'agn_other_torque: gain=', gain,' loss=',loss,'M_deposit=',m_deposit_target,' dj_dt=',dj_dt  
+   ! write(*,*) 'agn_other_torque: gain=', gain,' loss=',loss,'M_deposit=',m_deposit_target,' dj_dt=',dj_dt  
 
    ! Store for diagnostics
    s% job% extras_rpar(i_dj_dt) = dj_dt
