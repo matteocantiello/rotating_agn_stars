@@ -33,10 +33,11 @@
 
 ! Rotation initialization
   change_initial_rotation_flag = .true.
-  new_rotation_flag = .true.
-  
-  set_initial_omega = .true.
-  new_omega = 0d0
+  new_rotation_flag = .false.
+
+  set_omega_div_omega_crit = .true.
+  set_initial_omega_div_omega_crit = .true.
+  new_omega_div_omega_crit = 0.2
 
 / !end of star_job namelist
 
@@ -51,7 +52,7 @@
 &controls
 
   ! starting specifications
-    initial_mass = 5 ! in Msun units
+    initial_mass = 1 ! in Msun units
 
      relax_dY = 0.1d-2
 
@@ -76,6 +77,7 @@
      x_logical_ctrl(7) = .false. ! Rotation reduces L_edd.
      x_logical_ctrl(8) = .false. ! Use radiation beta for mixing.
      x_logical_ctrl(9) = .false. ! Use accretion composition for Ledd
+     x_logical_ctrl(10) = .true. ! Enable Rotationally Enhanced Mass Loss
 
   ! Options for energy conservation (see MESA V, Section 3)
     energy_eqn_option = 'dedt'
@@ -89,7 +91,7 @@
 
   ! Rotation and Mixing 
 
-    use_other_D_mix = .true. ! Activate gradual increase of min_D_mix (with Gamma)
+    use_other_D_mix = .false. ! Activate gradual increase of min_D_mix (with Gamma)
       
    ! omega_function_weight = 20               ! Rotational mixing parameters 
     am_nu_visc_factor = 0                     
@@ -103,19 +105,19 @@
     am_nu_ST_factor = 10
     clip_D_limit = 10
 
-    mdot_omega_power = 0.43
+    mdot_omega_power = 0.43 ! Exponent for rotationally enhanced mass loss
 
 
   ! Convection
 
     MLT_option = 'Cox'   ! 'TDC'
     mixing_length_alpha = 1.6
-    !use_Ledoux_criterion = .true. 
-    !alpha_semiconvection = 4d-2
-    !thermohaline_coeff = 2
+    use_Ledoux_criterion = .true. 
+    alpha_semiconvection = 4d-2
+    thermohaline_coeff = 2
 
   ! Solver
-    use_gold_tolerances = .false.
+    use_gold_tolerances = .true.
     convergence_ignore_equL_residuals = .true.
     ignore_species_in_max_correction = .true.
     min_timestep_limit = 1d-28
@@ -161,12 +163,12 @@
       
 
 ! central temperature changes
-!      delta_lgT_cntr_limit_only_after_near_zams = .true.
+      delta_lgT_cntr_limit_only_after_near_zams = .true.
       delta_lgT_cntr_limit = 1d-2  ! 0.002  
       delta_lgT_cntr_hard_limit = 0.1
 
 ! on any temperature changes, mainly to capture off-center flames
-!      delta_lgT_max_limit_only_after_near_zams = .true.
+      delta_lgT_max_limit_only_after_near_zams = .true.
       delta_lgT_max_limit = 1d-2  ! 0.002     
       delta_lgT_max_hard_limit = 0.1
 
@@ -198,7 +200,7 @@
 !--- end additional timestep controls -EbF
 
   ! Mesh
-    mesh_delta_coeff = 0.8
+    mesh_delta_coeff = 1.0
     max_allowed_nz = 36000
 
 
@@ -246,7 +248,6 @@ fe_core_infall_mass = 1d0
 fe_core_boundary_si28_fraction = 0.001!0.1d0
 
 non_fe_core_infall_limit = 1d10
-
 
 / ! end of controls namelist
 

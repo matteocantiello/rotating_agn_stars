@@ -17,6 +17,9 @@ module agn_stars
    integer, parameter :: i_mu_J = 18
    integer, parameter :: i_var_J = 19
    integer, parameter :: i_J_crit = 20
+   integer, parameter :: i_suppression = 8   ! Torque suppression factor for diagnostics
+   integer, parameter :: i_v_vcrit_ratio = 9   ! Torque suppression factor for diagnostics 
+
 
    ! Index definitions for extras_rpar (add to your existing indices)
    integer, parameter :: i_dj_dt = 1       ! net torque [erg]

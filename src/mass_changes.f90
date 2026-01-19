@@ -121,6 +121,12 @@ module mass_changes
       real(dp) :: gain ! g/s
       real(dp) :: previous_radius, prev_luminosity
 
+      ! Rotational enhancement variables
+      real(dp) :: v_div_v_crit, enhancement, wind_mdot, wind_mdot_lim
+      real(dp) :: kh_timescale, mdot_omega_power
+      real(dp) :: rotational_mdot_kh_fac, rotational_mdot_boost_fac
+      real(dp) :: max_rotational_mdot_boost
+
       type (star_info), pointer :: s
       ierr = 0
       call star_ptr(id, s, ierr)
@@ -141,6 +147,50 @@ module mass_changes
          Ledd = Ledd * max(1d-2, value)
       end if
 
+   
+      ! Calculate rotational enhancement (Following Heger, Langer, and Woosley, 2000, ApJ, 528:368-396)
+      if (s% x_logical_ctrl(10) .and. s% rotation_flag .and. abs(loss) > 0d0 .and. s% mdot_omega_power > 0) then
+
+         ! Parameters 
+         mdot_omega_power = s% mdot_omega_power                    ! 0.43 - Heger et al. 2000 value
+         rotational_mdot_kh_fac = s% rotational_mdot_kh_fac        ! Fraction of M/tau_KH as limit
+         rotational_mdot_boost_fac = s% rotational_mdot_boost_fac  ! Maximum boost factor relative to base rate
+         max_rotational_mdot_boost = s% max_rotational_mdot_boost  ! Absolute maximum boost
+         
+         v_div_v_crit = s% v_div_v_crit_avg_surf
+         wind_mdot = abs(loss)
+         
+         ! Compute enhancement factor: (1 - v/v_crit)^(-mdot_omega_power)
+         ! Cap v_div_v_crit just below 1 to avoid singularity
+         enhancement = pow(max(1d-4, 1d0 - min(v_div_v_crit, 0.9999d0)), -mdot_omega_power)
+         
+         ! Apply maximum boost limit
+         if (max_rotational_mdot_boost > 0d0 .and. enhancement > max_rotational_mdot_boost) then
+            enhancement = max_rotational_mdot_boost
+         end if
+         
+         ! Compute Kelvin-Helmholtz limited mass loss rate
+         kh_timescale = s% kh_timescale
+         wind_mdot_lim = min(rotational_mdot_kh_fac * s% mstar / kh_timescale, &
+                           wind_mdot * rotational_mdot_boost_fac)
+         
+         ! Apply enhancement, but respect the limit
+         if (wind_mdot * enhancement < wind_mdot_lim) then
+            wind_mdot = wind_mdot * enhancement
+         else
+            enhancement = wind_mdot_lim / wind_mdot
+            wind_mdot = wind_mdot_lim
+         end if
+         
+         ! Update loss (keep it negative)
+         loss = -wind_mdot
+         
+         write(*,'(A,ES12.4,A,ES12.4,A,ES12.4)') &
+            '  Rotational mdot enhancement: v/v_crit=', v_div_v_crit, &
+            ' boost=', enhancement, ' loss=', loss
+         
+      end if
+   
 
       ! Calculate accretion
 

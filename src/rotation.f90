@@ -180,6 +180,7 @@ subroutine compute_surface_dj(id, gain, loss, R_bondi, dj_dt)
    end if
 
    s% job% extras_rpar(i_R_Hill) = R_Hill
+   s% job% extras_rpar(i_v_vcrit_ratio) = v_vcrit_ratio
 
 end subroutine compute_surface_dj
 
