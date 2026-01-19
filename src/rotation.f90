@@ -170,7 +170,7 @@ subroutine compute_surface_dj(id, gain, loss, R_bondi, dj_dt)
 
    ! Suppress positive torque as we approach critical rotation
    ! This represents the physical reality that excess angular momentum
-   ! cannot be accreted - it forms a decretion disk or is shed
+   ! cannot be accreted and forms a decretion disk or is shed
    if (dj_dt > 0d0 .and. v_vcrit_ratio > 0.5d0) then
       ! Smooth suppression: goes to zero as v_vcrit_ratio -> 1
       ! At v/v_crit = 0.5: suppression_factor = 1.0 (no suppression)
@@ -199,12 +199,11 @@ subroutine agn_other_torque(id, ierr)
    real(dp) :: m_deposit_target
 
 
-
    ierr = 0
    call star_ptr(id, s, ierr)
    if (ierr /= 0) return
 
-   m_deposit_target = 1d0 * s% mstar  ! 100% of stellar mass (tried initially with 1% but led to numerical issues)
+   m_deposit_target = 1d0 * s% mstar  ! Deposit angular momentum in 100% of stellar mass (tried initially with 1% but led to numerical issues)
 
    s% extra_jdot(:) = 0d0
    s% extra_omegadot(:) = 0d0
