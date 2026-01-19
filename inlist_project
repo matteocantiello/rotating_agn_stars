@@ -33,11 +33,11 @@
 
 ! Rotation initialization
   change_initial_rotation_flag = .true.
-  new_rotation_flag = .false.
+  new_rotation_flag = .true.
 
   set_omega_div_omega_crit = .true.
   set_initial_omega_div_omega_crit = .true.
-  new_omega_div_omega_crit = 0.2
+  new_omega_div_omega_crit = 0.001 ! Start almost non-rotating
 
 / !end of star_job namelist
 
@@ -97,11 +97,11 @@
     am_nu_visc_factor = 0                     
     am_D_mix_factor = 0.0333333333333333d00
     D_DSI_factor = 0
-    D_SH_factor = 10
-    D_SSI_factor = 10
-    D_ES_factor = 10  
-    D_GSF_factor = 10
-    D_ST_factor = 10
+    D_SH_factor = 1
+    D_SSI_factor = 1
+    D_ES_factor = 1  
+    D_GSF_factor = 1
+    D_ST_factor = 1
     am_nu_ST_factor = 10
     clip_D_limit = 10
 
@@ -217,12 +217,6 @@
     terminal_interval = 1
     history_interval = 1 ! Important to be 1 for using accreted_mass, lost_mass and lost mass in isotopes (it's not cumulative, so undercounts if not saving all history. Improve to cumulative)
     warn_when_large_rel_run_E_err = 1d99
-
-! commented out by EbF
-!    profile_interval = 500
-!    photo_interval = 200
-!    max_num_profile_models = 500
-! new saving options from -EbF
 
 ! output frequency section:
        photo_interval         = 100
