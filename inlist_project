@@ -37,7 +37,7 @@
 
   set_omega_div_omega_crit = .true.
   set_initial_omega_div_omega_crit = .true.
-  new_omega_div_omega_crit = 0.001 ! Start almost non-rotating
+  new_omega_div_omega_crit = 0.001 ! Start ~non-rotating
 
 / !end of star_job namelist
 
