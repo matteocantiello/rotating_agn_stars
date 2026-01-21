@@ -133,7 +133,7 @@ module rotation
 
 end subroutine compute_surface_dj_old
 
-subroutine compute_surface_dj(id, gain, loss, R_bondi, dj_dt)
+subroutine compute_surface_dj_old1(id, gain, loss, R_bondi, dj_dt)
    real(dp), intent(in) :: gain, loss, R_bondi
    real(dp), intent(out) :: dj_dt
    real(dp) :: M, R, h, R_Hill, R_acc, j_acc, j_surf, Omega_surf
@@ -182,9 +182,70 @@ subroutine compute_surface_dj(id, gain, loss, R_bondi, dj_dt)
    s% job% extras_rpar(i_R_Hill) = R_Hill
    s% job% extras_rpar(i_v_vcrit_ratio) = v_vcrit_ratio
 
+end subroutine compute_surface_dj_old1
+
+subroutine compute_surface_dj(id, gain, loss, R_bondi, dj_dt)
+   real(dp), intent(in) :: gain, loss, R_bondi
+   real(dp), intent(out) :: dj_dt
+   real(dp) :: M, R, h, R_Hill, R_acc, j_acc, j_surf, Omega_surf
+   real(dp) :: v_vcrit_ratio, suppression_factor
+   real(dp) :: onset_v_vcrit, suppression_power
+   integer, intent(in) :: id
+   integer :: ierr
+   type(star_info), pointer :: s
+
+   ierr = 0
+   call star_ptr(id, s, ierr)
+   if (ierr /= 0) return
+
+   M = s%m(1)
+   R = s%r(1)
+   Omega_surf = s%omega(1)
+
+   ! Use MESA's mass-weighted surface v/v_crit average
+   v_vcrit_ratio = s% v_div_v_crit_avg_surf
+
+   ! Disk scale height
+   h = sqrt(2d0) * const_csb / Omega_AGN
+
+   ! Hill radius and accretion radius
+   R_Hill = pow((1d0/12d0) * pow2(h) * R_bondi, 1d0/3d0)
+   R_acc = min(R_Hill, R_Bondi)
+
+   ! Specific angular momenta
+   j_acc = min(pow2(R_acc) * Omega_AGN, sqrt(standard_cgrav * M * R))
+   j_surf = Omega_surf * pow2(R)
+
+   ! Raw torque
+   dj_dt = abs(gain) * j_acc - abs(loss) * j_surf
+
+   ! Suppress positive torque as we approach critical rotation
+   ! Parameters to tune:
+   !   onset_v_vcrit: v/v_crit at which suppression begins
+   !   suppression_power: higher = sharper cutoff near critical
+   onset_v_vcrit = 0.7d0      ! Start suppression at 90% critical
+   suppression_power = 4d0    ! Steep falloff
+
+   if (dj_dt > 0d0) then
+      if (v_vcrit_ratio >= 1d0) then
+         ! At or above critical: no spin-up allowed
+         suppression_factor = 0d0
+      else if (v_vcrit_ratio > onset_v_vcrit) then
+         ! Between onset and critical: smooth but steep suppression
+         ! Goes from 1 at onset_v_vcrit to 0 at v_vcrit_ratio = 1
+         suppression_factor = pow((1d0 - v_vcrit_ratio) / (1d0 - onset_v_vcrit), suppression_power)
+      else
+         ! Below onset: no suppression
+         suppression_factor = 1d0
+      end if
+      dj_dt = dj_dt * suppression_factor
+   end if
+
+   s% job% extras_rpar(i_R_Hill) = R_Hill
+   s% job% extras_rpar(i_v_vcrit_ratio) = v_vcrit_ratio
+   s% job% extras_rpar(i_suppression) = suppression_factor
+
 end subroutine compute_surface_dj
-
-
 
 subroutine agn_other_torque(id, ierr)
    use star_def
@@ -197,6 +258,7 @@ subroutine agn_other_torque(id, ierr)
    real(dp) :: H_p, r_deposit
    real(dp) :: j_acc, j_surf_specific, dJ_total
    real(dp) :: m_deposit_target
+   real(dp) :: torque_check
 
 
    ierr = 0
@@ -216,9 +278,10 @@ subroutine agn_other_torque(id, ierr)
    ! Skip during relaxation
    if (s% doing_relax) return
 
+
    call compute_surface_dj(id, gain, loss, R_bondi, dj_dt)
 
-   ! write(*,*) 'agn_other_torque: gain=', gain,' loss=',loss,'M_deposit=',m_deposit_target,' dj_dt=',dj_dt  
+   write(*,*) 'agn_other_torque: gain=', gain,' loss=',loss,'M_deposit=',m_deposit_target,' dj_dt=',dj_dt  
 
    ! Store for diagnostics
    s% job% extras_rpar(i_dj_dt) = dj_dt
@@ -235,12 +298,16 @@ subroutine agn_other_torque(id, ierr)
    m_sum = 0d0
    k_acc = 1
    do k = 1, s% nz
-      m_sum = m_sum + s% dm(k)
+      m_sum = m_sum + s% dm_bar(k)
       k_acc = k
       if (m_sum >= m_deposit_target) exit
    end do
 
    ! Compute total mass and angular momentum in the deposition region
+   ! Note that extra_jdot is the rate at which specific angular momentum is changed
+   ! dj_dt has units of g·cm²/s² (total torque)
+   ! extra_jdot needs units of cm²/s² (specific torque)
+
    m_sum = 0d0
    J_surf = 0d0
    do k = 1, k_acc
@@ -248,23 +315,19 @@ subroutine agn_other_torque(id, ierr)
       J_surf = J_surf + s% dm_bar(k) * s% j_rot(k)
    end do
 
-
-   ! Apply torque
-   if (J_surf < 1d-99) then
-      ! Deposit uniformly by mass in the surface region
-      do k = 1, k_acc
-         s% extra_jdot(k) = dj_dt / m_sum
-      end do
-   else
-      ! Scale proportionally to existing j_rot distribution
-      scale = dj_dt * s% dt / J_surf
-      do k = 1, k_acc
-         s% extra_jdot(k) = s% j_rot(k) * scale / s% dt
-      end do
-   end if
+   ! Deposit uniformly by mass 
+   do k = 1, k_acc
+      s% extra_jdot(k) =  dj_dt / (k_acc * s% dm_bar(k))  ! Specific torque cm^2/s^2. Divide by shell mass and total number of shells
+      !write(*,*) ' k=',k,' dm_bar=',s% dm_bar(k),' extra_jdot=',s% extra_jdot(k)
+   end do
 
    ! Compute diagnostic quantities
    dJ_total = dj_dt * s% dt
+
+   ! Check angular momentum conservation
+   torque_check = 0d0
+
+   torque_check = dot_product(s% extra_jdot(1:k_acc),s% dm_bar(1:k_acc)) ! Total applied Torque
 
    ! Store diagnostics
    s% job% extras_rpar(i_H_p) = H_p
@@ -292,6 +355,7 @@ subroutine agn_other_torque(id, ierr)
       write(*,'(A,ES12.4)') '    J_surf [g cm2/s]  = ', J_surf
       write(*,'(A,ES12.4)') '    J_star [g cm2/s]  = ', s% total_angular_momentum
       write(*,'(A,ES12.4)') '    dJ / J_star       = ', dJ_total / s% total_angular_momentum
+      write(*,'(A,ES12.4)') '    torque_check/dj_dt= ', torque_check / dj_dt
       write(*,'(A)') '  ==================================='
    !end if
 

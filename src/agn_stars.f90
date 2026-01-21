@@ -112,9 +112,29 @@ module agn_stars
       integer :: j
       real(dp) :: eps_nuc, burn_time, mix_time, f_mix, min_burn_time, min_eps_nuc, min_f_mix, diff_integral, mdot
       integer :: ierr
+
+     
+      real(dp) :: v_vcrit, rotation_dt_limit
+      
+
       ierr = 0
       call star_ptr(id, s, ierr)
       if (ierr /= 0) return
+
+
+      ! Limit timestep as we approach critical rotation
+      v_vcrit = s% v_div_v_crit_avg_surf
+      
+      if (v_vcrit > 0.7d0) then
+         ! As we approach critical, force smaller timesteps
+         ! This ensures we don't overshoot critical in a single step
+         rotation_dt_limit = (1d0 - v_vcrit) * 0.1d0  ! Fraction of remaining "room" to critical
+         rotation_dt_limit = max(rotation_dt_limit, 1d-4)  ! Floor to avoid tiny timesteps
+         dt_limit_ratio = max(dt_limit_ratio, s%dt / (rotation_dt_limit * s% kh_timescale * s%time_delta_coeff))
+         write(*,*) 'Rotation dt limit (v/v_crit):', v_vcrit, ' dt_limit_ratio:', &
+                  s%dt / (rotation_dt_limit * s% kh_timescale * s%time_delta_coeff)
+      end if
+
 
       min_burn_time = 1d100
       diff_integral = 0d0

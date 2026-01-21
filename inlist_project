@@ -29,7 +29,7 @@
 ! turn on hydro - EbF
       change_initial_v_flag = .true.
       change_v_flag = .true.
-      new_v_flag = .false.
+      new_v_flag = .true.
 
 ! Rotation initialization
   change_initial_rotation_flag = .true.
@@ -37,7 +37,7 @@
 
   set_omega_div_omega_crit = .true.
   set_initial_omega_div_omega_crit = .true.
-  new_omega_div_omega_crit = 0.001 ! Start ~non-rotating
+  new_omega_div_omega_crit = 0.01 ! Start ~non-rotating
 
 / !end of star_job namelist
 
@@ -62,8 +62,8 @@
      x_ctrl(3) = 4d-1  ! Average accretion stream opacity in cm^2/s. Using electron scattering. Before we were using surface value  
      x_ctrl(4) = 1d6   ! Time (yrs) over which star falls into AGN (used for blending atmospheric boundary condition)
      x_ctrl(5) = 7.0   ! Exponent for mixing turnon when using Ledd prescription.
-     x_ctrl(6) = 2d6   ! Time (yrs) over which the mass gain turns on.
-     x_ctrl(9) = 1d-11 ! AGN angular frequency in rad/s
+     x_ctrl(6) = 3d6   ! Time (yrs) over which the mass gain turns on.
+     x_ctrl(9) = 1d-50 ! AGN angular frequency in rad/s ! 1d-11 
      x_ctrl(10) = 5d4  ! Cutoff mass due to the gap
      x_ctrl(11) = 1d8  ! SMBH mass
      x_ctrl(12) = 1d0  ! Transitional beta, used to set the Prad/P where extra mixing turns on (when using beta prescription).
